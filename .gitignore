@@ -1,0 +1,9 @@
+*.md
+__pycache__
+.venv
+
+# Environment variables
+.env
+.env.development
+.env.production
+.env.local
