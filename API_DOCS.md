@@ -1,152 +1,98 @@
 # Vnstock API Documentation
 
-Welcome to the Vnstock API documentation. This service provides a high-performance wrapper for the `vnstock` library, optimized for mobile and web consumption.
-
-## Base URL
-`https://vnstock.finance.duylong.art`
-
-## Authentication
-Currently, the API is public and does not require authentication.
-
----
+**Base URL**: `https://vnstock.finance.duylong.art`
 
 ## Endpoints
 
-### 1. Health Check
-Verify if the service is running.
+### 1. Market & Indices
 
-**URL**: `/health`  
-**Method**: `GET`  
-**Response**:
-```json
-{
-  "status": "ok",
-  "message": "Vnstock API is running"
-}
-```
+#### List All Indices
+- **URL**: `/market/indices`
+- **Method**: `GET`
+- **Description**: Returns metadata for all supported indices.
 
-### 2. Current Stock Price
-Get real-time price, change statistics, and volume for a specific ticker.
+#### Index Historical Data
+- **URL**: `/market/index/historical`
+- **Method**: `GET`
+- **Params**:
+  - `symbol` (required): Index ticker (e.g., `VNINDEX`, `VN30`, `DJI`).
+  - `start_date` (optional): `YYYY-MM-DD` (default: `2024-01-01`).
+  - `end_date` (optional): `YYYY-MM-DD`.
+  - `resolution` (optional): `1D`, `1H`, `5m`.
 
-**URL**: `/stock/price`  
-**Method**: `GET`  
-**Query Parameters**:
-- `symbol` (Required): Stock ticker (e.g., `VNM`, `FPT`, `VIC`)
+#### Gold Prices
+- **URL**: `/market/gold`
+- **Method**: `GET`
+- **Description**: Real-time and historical SJC/BTMC gold prices.
 
-**Response**:
-```json
-{
-  "data": {
-    "symbol": "VNM",
-    "price": 61400,
-    "change": -600,
-    "change_percent": -0.9677,
-    "volume": 5855700,
-    "high": 62100,
-    "low": 60500,
-    "time": 1777019549854
-  }
-}
-```
+### 2. Stocks
 
-### 3. Company Overview
-Retrieve business model, history, and profile information for a company.
+#### Stock Price
+- **URL**: `/stock/price?symbol=VNM`
+- **Method**: `GET`
 
-**URL**: `/stock/overview`  
-**Method**: `GET`  
-**Query Parameters**:
-- `symbol` (Required): Stock ticker.
+#### Stock Overview
+- **URL**: `/stock/overview?symbol=VNM`
+- **Method**: `GET`
 
-**Response**:
-```json
-{
-  "symbol": "VNM",
-  "overview": [
-    {
-      "business_model": "Chế biến, sản xuất kinh doanh sữa...",
-      "ceo_name": "Ms. Mai Kiều Liên",
-      "exchange": "HOSE",
-      "website": "https://www.vinamilk.com.vn"
-    }
-  ]
-}
-```
+#### Stock Historical
+- **URL**: `/stock/historical?symbol=VNM&start_date=2024-01-01`
+- **Method**: `GET`
 
-### 4. Historical Data
-Get daily OHLCV (Open, High, Low, Close, Volume) data.
+#### All-in-One Stock Info
+- **URL**: `/stock/all?symbol=VNM`
+- **Method**: `GET`
 
-**URL**: `/stock/historical`  
-**Method**: `GET`  
-**Query Parameters**:
-- `symbol` (Required): Stock ticker.
-- `start_date` (Optional): Start date in `YYYY-MM-DD` format (Default: `2024-01-01`).
-- `end_date` (Optional): End date in `YYYY-MM-DD` format.
-- `resolution` (Optional): Data resolution (Default: `1D`).
+#### Stock News
+- **URL**: `/stock/news?symbol=VNM`
+- **Method**: `GET`
 
-**Response**:
-```json
-{
-  "symbol": "VNM",
-  "source": "KBS",
-  "data": [
-    {
-      "time": "2024-01-01",
-      "open": 61000,
-      "high": 62000,
-      "low": 60500,
-      "close": 61500,
-      "volume": 1200000
-    }
-  ]
-}
-```
+#### Stock Events
+- **URL**: `/stock/events?symbol=VNM`
+- **Method**: `GET`
 
-### 5. Unified Stock Data
-Combines current price and company overview in a single call for dashboard efficiency.
+### 3. Derivatives & Fixed Income
 
-**URL**: `/stock/all`  
-**Method**: `GET`  
-**Query Parameters**:
-- `symbol` (Required): Stock ticker.
+#### Futures Contracts
+- **URL**: `/assets/futures`
+- **Method**: `GET`
 
-**Response**:
-```json
-{
-  "price": { ... },
-  "company": { ... }
-}
-```
+#### Covered Warrants
+- **URL**: `/assets/warrants`
+- **Method**: `GET`
+
+#### Bonds
+- **URL**: `/assets/bonds`
+- **Method**: `GET`
+- **Params**:
+  - `corp` (optional): `true` (default) for Corporate, `false` for Government.
+
+### 4. Funds
+
+#### Fund Listing
+- **URL**: `/funds/listing`
+- **Method**: `GET`
+
+#### Fund Details
+- **URL**: `/funds/details/{symbol}`
+- **Method**: `GET`
+
+### 5. International Markets (MSN Source)
+
+#### Forex History
+- **URL**: `/forex/historical`
+- **Method**: `GET`
+- **Params**:
+  - `symbol` (optional): e.g., `EURUSD`, `USDVND` (default: `EURUSD`).
+
+#### Crypto History
+- **URL**: `/crypto/historical`
+- **Method**: `GET`
+- **Params**:
+  - `symbol` (optional): e.g., `BTC`, `ETH` (default: `BTC`).
 
 ---
 
-## Flutter Integration Example
-
-Using the `http` package in Flutter:
-
-```dart
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-
-class StockService {
-  final String baseUrl = 'https://vnstock.finance.duylong.art';
-
-  Future<Map<String, dynamic>> getStockInfo(String symbol) async {
-    final response = await http.get(Uri.parse('$baseUrl/stock/all?symbol=$symbol'));
-    
-    if (response.statusCode == 200) {
-      return json.decode(response.body);
-    } else {
-      throw Exception('Failed to load stock data');
-    }
-  }
-}
-```
-
----
-
-## Errors
-The API uses standard HTTP status codes:
-- `200 OK`: Request succeeded.
-- `400 Bad Request`: Invalid parameters.
-- `404 Not Found`: Stock symbol not recognized.
-- `500 Internal Server Error`: Server error or data source failure.
+## Error Handling
+All endpoints return a 404 or 500 status code with a detail message if the data cannot be fetched.
+Example: `{"detail": "Stock VNM not found"}`
