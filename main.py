@@ -29,6 +29,16 @@ app.add_middleware(
 # Initialize Vnstock
 v = Vnstock()
 
+def clean_data(data: Any) -> Any:
+    """Convert NaN values to None for JSON compliance."""
+    if isinstance(data, pd.DataFrame):
+        return data.where(pd.notnull(data), None).to_dict(orient="records")
+    if isinstance(data, list):
+        return [clean_data(i) for i in data]
+    if isinstance(data, dict):
+        return {k: clean_data(v) for k, v in data.items()}
+    return data
+
 def get_stock_instance(symbol: str, source: str = "KBS"):
     try:
         return v.stock(symbol=symbol, source=source)
@@ -100,8 +110,8 @@ def get_stock_overview(symbol: str = Query(..., description="Stock ticker symbol
         
         return {
             "symbol": symbol,
-            "overview": overview.to_dict(orient="records") if not overview.empty else [],
-            # "profile": profile.to_dict(orient="records") if not profile.empty else []
+            "overview": clean_data(overview),
+            # "profile": clean_data(profile)
         }
     except Exception as e:
         logger.error(f"Error fetching overview for {symbol}: {e}")
@@ -131,7 +141,7 @@ def get_historical(
                 continue
                 
             if not df.empty:
-                return {"symbol": symbol, "source": source, "data": df.to_dict(orient="records")}
+                return {"symbol": symbol, "source": source, "data": clean_data(df)}
         except Exception as e:
             logger.warning(f"Source {source} failed for historical data: {e}")
             continue
@@ -160,7 +170,7 @@ def list_indices():
     """List all supported indices metadata."""
     try:
         df = indices.get_all_indices()
-        return {"data": df.to_dict(orient="records")}
+        return {"data": clean_data(df)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -177,12 +187,11 @@ def get_index_historical(
         # Use existing stock historical logic but specifically for indices
         return get_historical(symbol=symbol, start_date=start_date, end_date=end_date, resolution=resolution)
     
-    # Try as international index via MSN
     asset = get_msn_instance(symbol, asset_type="world_index")
     if asset:
         try:
             df = asset.quote.history(start=start_date, end=end_date, interval=resolution)
-            return {"symbol": symbol, "source": "MSN", "data": df.to_dict(orient="records")}
+            return {"symbol": symbol, "source": "MSN", "data": clean_data(df)}
         except Exception as e:
             logger.error(f"MSN Index history failed for {symbol}: {e}")
     
@@ -195,8 +204,8 @@ def get_gold_prices(date: Optional[str] = None):
         sjc = gold_price.sjc_gold_price(date=date)
         btmc = gold_price.btmc_goldprice()
         return {
-            "sjc": sjc.to_dict(orient="records") if isinstance(sjc, pd.DataFrame) else sjc,
-            "btmc": btmc.to_dict(orient="records") if isinstance(btmc, pd.DataFrame) else btmc
+            "sjc": clean_data(sjc),
+            "btmc": clean_data(btmc)
         }
     except Exception as e:
         logger.error(f"Error fetching gold prices: {e}")
@@ -211,7 +220,7 @@ def list_futures():
         # We can use any valid stock instance to access listing
         stock = get_stock_instance("VN30F1M")
         df = stock.listing.all_future_indices()
-        return {"data": df.to_dict(orient="records")}
+        return {"data": clean_data(df)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -221,7 +230,7 @@ def list_warrants():
     try:
         stock = get_stock_instance("ACB")
         df = stock.listing.all_covered_warrant()
-        return {"data": df.to_dict(orient="records")}
+        return {"data": clean_data(df)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -234,7 +243,7 @@ def list_bonds(corp: bool = True):
             df = stock.listing.all_bonds()
         else:
             df = stock.listing.all_government_bonds()
-        return {"data": df.to_dict(orient="records")}
+        return {"data": clean_data(df)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -246,7 +255,7 @@ def list_funds():
     try:
         f = v.fund(source="FMARKET")
         df = f.listing()
-        return {"data": df.to_dict(orient="records")}
+        return {"data": clean_data(df)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -270,7 +279,7 @@ def get_fx_historical(symbol: str = "EURUSD", start_date: str = "2024-01-01", en
         raise HTTPException(status_code=404, detail=f"Forex pair {symbol} not found")
     try:
         df = asset.quote.history(start=start_date, end=end_date)
-        return {"symbol": symbol, "data": df.to_dict(orient="records")}
+        return {"symbol": symbol, "data": clean_data(df)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -282,7 +291,7 @@ def get_crypto_historical(symbol: str = "BTC", start_date: str = "2024-01-01", e
         raise HTTPException(status_code=404, detail=f"Crypto asset {symbol} not found")
     try:
         df = asset.quote.history(start=start_date, end=end_date)
-        return {"symbol": symbol, "data": df.to_dict(orient="records")}
+        return {"symbol": symbol, "data": clean_data(df)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -296,7 +305,7 @@ def get_stock_news(symbol: str = Query(...)):
         raise HTTPException(status_code=404, detail="Company news unavailable")
     try:
         df = stock.company.news()
-        return {"symbol": symbol, "data": df.to_dict(orient="records")}
+        return {"symbol": symbol, "data": clean_data(df)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -308,7 +317,7 @@ def get_stock_events(symbol: str = Query(...)):
         raise HTTPException(status_code=404, detail="Company events unavailable")
     try:
         df = stock.company.events()
-        return {"symbol": symbol, "data": df.to_dict(orient="records")}
+        return {"symbol": symbol, "data": clean_data(df)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
