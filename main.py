@@ -26,17 +26,22 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
+import numpy as np
+
 # Initialize Vnstock
 v = Vnstock()
 
 def clean_data(data: Any) -> Any:
-    """Convert NaN values to None for JSON compliance."""
+    """Convert NaN/Inf values to None for JSON compliance."""
     if isinstance(data, pd.DataFrame):
-        return data.where(pd.notnull(data), None).to_dict(orient="records")
+        # Replace inf with nan, then replace all nan with None
+        return data.replace([np.inf, -np.inf], np.nan).replace({np.nan: None}).to_dict(orient="records")
     if isinstance(data, list):
         return [clean_data(i) for i in data]
     if isinstance(data, dict):
         return {k: clean_data(v) for k, v in data.items()}
+    if isinstance(data, float) and (np.isnan(data) or np.isinf(data)):
+        return None
     return data
 
 def get_stock_instance(symbol: str, source: str = "KBS"):
