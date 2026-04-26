@@ -44,17 +44,17 @@ def get_stock_price(symbol: str = Query(..., description="Stock ticker symbol, e
             return {"data": {}}
         
         data = df.iloc[0].to_dict()
-        # Ensure we return common fields for Flutter
+        # Ensure we return common fields for Flutter based on raw data observed
         result = {
             "symbol": data.get("symbol"),
-            "price": data.get("price"),
-            "change": data.get("change_amount"),
-            "change_percent": data.get("change_percent"),
-            "volume": data.get("total_volume"),
-            "high": data.get("high"),
-            "low": data.get("low"),
+            "price": data.get("close_price") or data.get("price"),
+            "change": data.get("price_change") or data.get("change_amount"),
+            "change_percent": data.get("percent_change") or data.get("change_percent"),
+            "volume": data.get("volume_accumulated") or data.get("total_volume"),
+            "high": data.get("high_price") or data.get("high"),
+            "low": data.get("low_price") or data.get("low"),
             "time": data.get("time"),
-            "raw": data # Include raw data just in case
+            "raw": data 
         }
         return {"data": result}
     except Exception as e:
@@ -72,12 +72,12 @@ def get_stock_overview(symbol: str = Query(..., description="Stock ticker symbol
     
     try:
         overview = stock.company.overview()
-        profile = stock.company.profile()
+        # profile = stock.company.profile() # This might fail for some sources
         
         return {
             "symbol": symbol,
             "overview": overview.to_dict(orient="records") if not overview.empty else [],
-            "profile": profile.to_dict(orient="records") if not profile.empty else []
+            # "profile": profile.to_dict(orient="records") if not profile.empty else []
         }
     except Exception as e:
         logger.error(f"Error fetching overview for {symbol}: {e}")
