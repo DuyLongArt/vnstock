@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 from vnstock import Vnstock
 import pandas as pd
 from typing import Optional, List, Dict, Any
@@ -10,8 +11,17 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Vnstock API", 
-    description="API wrapper for vnstock library to be used in Flutter",
+    description="API wrapper for vnstock library to be used in Flutter. Hosted at: vnstock.finance.duylong.art",
     version="1.0.0"
+)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
 )
 
 # Initialize Vnstock
